@@ -11,6 +11,7 @@ from app.utils.time import utc_now, parse_iso_datetime, format_iso_datetime
 from app.utils.normalization import normalize_channel_name
 from app.utils.logging import logger
 from app.providers.curated_broadcasters import get_curated_broadcasters_for_event
+from app.providers.api_football import EXCLUDED_LEAGUE_KEYWORDS
 
 # Major League IDs in TheSportsDB for reliable upcoming schedule lookups
 POPULAR_LEAGUE_IDS = {
@@ -184,6 +185,8 @@ class TheSportsDBProvider(SportsProvider, BroadcastProvider):
             sport = self._normalize_sport(raw.get("strSport"))
             league_id = str(raw.get("idLeague") or raw.get("idLeague_api") or "generic")
             league_name = raw.get("strLeague") or "General League"
+            if any(kw in league_name.lower() for kw in EXCLUDED_LEAGUE_KEYWORDS):
+                return None
             alt_event = raw.get("strEventAlternate") or ""
             home_name = (raw.get("strHomeTeam") or (alt_event.split(" vs ")[0] if " vs " in alt_event else "Home")).strip()
             away_name = (raw.get("strAwayTeam") or (alt_event.split(" vs ")[1] if " vs " in alt_event else "Away")).strip()

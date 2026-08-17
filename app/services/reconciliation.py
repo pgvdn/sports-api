@@ -104,9 +104,52 @@ def merge_two_events(primary: Event, secondary: Event) -> Event:
     )
 
 
+EXCLUDED_LEAGUE_KEYWORDS = {
+    "argentin",             # Matches Argentinian, Argentina, etc.
+    "primera division",     # Argentine Primera División
+    "primera nacional",     # Argentine Segunda División
+    "liga profesional",     # Argentine top flight
+    "brasileirao",          # Brazilian Série A
+    "serie a brasil",       # Brazilian Série A
+    "serie b brasil",       # Brazilian Série B
+    "campeonato brasileiro",
+    "copa do brasil",
+    "copa argentina",
+    "copa libertadores",
+    "copa sudamericana",
+    "recopa sudamericana",
+    "chilean",
+    "colombian",
+    "uruguayan",
+    "paraguayan",
+    "ecuadorian",
+    "peruvian",
+    "bolivian",
+    "venezuelan",
+}
+
+
+def is_event_excluded(event: Event) -> bool:
+    """Checks if the event belongs to an excluded league/competition."""
+    league_name = (event.league.name or "").lower()
+    league_country = (event.league.country or "").lower()
+    
+    # Check league keywords
+    for kw in EXCLUDED_LEAGUE_KEYWORDS:
+        if kw in league_name:
+            return True
+            
+    # Check if domestic event from excluded countries
+    excluded_countries = {"argentina", "brazil", "chile", "colombia", "uruguay", "paraguay", "ecuador", "peru", "bolivia", "venezuela"}
+    if event.sport == "soccer" and league_country in excluded_countries and "copa america" not in league_name:
+        return True
+
+    return False
+
+
 def reconcile_events(events_list: List[Event]) -> List[Event]:
     """
-    Deduplicates and merges a list of events collected from multiple providers.
+    Deduplicates, merges, and filters a list of events collected from multiple providers.
     """
     if not events_list:
         return []
@@ -114,6 +157,9 @@ def reconcile_events(events_list: List[Event]) -> List[Event]:
     reconciled: List[Event] = []
 
     for event in events_list:
+        if is_event_excluded(event):
+            continue
+
         matched_idx = -1
         for idx, existing in enumerate(reconciled):
             if are_events_matching(existing, event):

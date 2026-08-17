@@ -273,19 +273,6 @@ LEAGUE_BROADCASTER_MAPPINGS: Dict[str, List[Dict[str, Any]]] = {
         {"name": "TUDN", "countryCode": "US", "country": "United States", "language": "Spanish"},
     ],
 
-    # Brazil & Argentina
-    "copa do brasil": [
-        {"name": "TV Globo", "countryCode": "BR", "country": "Brazil", "language": "Portuguese"},
-        {"name": "SporTV", "countryCode": "BR", "country": "Brazil", "language": "Portuguese"},
-        {"name": "Premiere", "countryCode": "BR", "country": "Brazil", "language": "Portuguese"},
-        {"name": "Prime Video", "countryCode": "BR", "country": "Brazil", "language": "Portuguese", "type": "ott"},
-    ],
-    "copa argentina": [
-        {"name": "TyC Sports", "countryCode": "AR", "country": "Argentina", "language": "Spanish"},
-        {"name": "TyC Sports Internacional", "countryCode": "AR", "country": "Worldwide", "language": "Spanish"},
-        {"name": "Fanatiz", "countryCode": "US", "country": "United States", "language": "Spanish", "type": "ott"},
-    ],
-
     # India
     "durand cup": [
         {"name": "Sony Sports Ten 2", "countryCode": "IN", "country": "India", "language": "English"},
@@ -343,13 +330,6 @@ LEAGUE_BROADCASTER_MAPPINGS: Dict[str, List[Dict[str, Any]]] = {
         {"name": "DAZN", "countryCode": "GB", "country": "Worldwide", "language": "English", "type": "ott"},
         {"name": "beIN Sports 1", "countryCode": "QA", "country": "Middle East", "language": "Arabic"},
         {"name": "SuperSport Football", "countryCode": "ZA", "country": "South Africa", "language": "English"},
-    ],
-    "copa libertadores": [
-        {"name": "beIN Sports 1", "countryCode": "US", "country": "United States", "language": "Spanish/English"},
-        {"name": "beIN Sports en Español", "countryCode": "US", "country": "United States", "language": "Spanish"},
-        {"name": "ESPN 4", "countryCode": "BR", "country": "Brazil", "language": "Portuguese"},
-        {"name": "Star+", "countryCode": "AR", "country": "South America", "language": "Spanish", "type": "ott"},
-        {"name": "Paramount+", "countryCode": "BR", "country": "Brazil", "language": "Portuguese", "type": "ott"},
     ],
     "afc champions league": [
         {"name": "SSC 1 HD", "countryCode": "SA", "country": "Saudi Arabia", "language": "Arabic"},

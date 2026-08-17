@@ -37,7 +37,6 @@ SOCCER_LEAGUE_SLUGS = [
     ("uefa.europa.conf", "UEFA Conference League", "Europe"),
     ("uefa.super_cup", "UEFA Super Cup", "Europe"),
     ("fifa.cwc", "FIFA Club World Cup", "Worldwide"),
-    ("conmebol.libertadores", "Copa Libertadores", "South America"),
 ]
 
 BASKETBALL_LEAGUE_SLUGS = [

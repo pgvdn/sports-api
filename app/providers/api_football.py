@@ -10,6 +10,23 @@ from app.utils.time import utc_now, parse_iso_datetime, format_iso_datetime
 from app.utils.logging import logger
 from app.providers.curated_broadcasters import get_curated_broadcasters_for_event
 
+# South American domestic leagues to exclude
+EXCLUDED_LEAGUE_KEYWORDS = {
+    "argentinian",          # Argentinian Primera Division (TheSportsDB naming)
+    "primera division",     # Argentine Primera División
+    "primera nacional",     # Argentine Segunda División
+    "liga profesional",     # Argentine top flight (alternate name)
+    "brasileirao",          # Brazilian Série A
+    "serie a brasil",       # Brazilian Série A (alternate)
+    "serie b brasil",       # Brazilian Série B
+    "campeonato brasileiro",
+    "copa libertadores",
+    "copa sudamericana",
+    "recopa sudamericana",
+    "liga mx",              # Mexican league (optional: remove if you want Liga MX)
+}
+
+
 
 class ApiFootballProvider(SportsProvider):
     """
@@ -157,6 +174,9 @@ class ApiFootballProvider(SportsProvider):
                 )
 
             league_name = league.get("name", "Soccer League")
+            if any(kw in league_name.lower() for kw in EXCLUDED_LEAGUE_KEYWORDS):
+                return None
+
             clean_league_slug = league_name.lower().replace(" ", "_")[:12]
             canonical_id = f"soccer_{clean_league_slug}_{fixture_id}"
 
