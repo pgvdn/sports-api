@@ -492,6 +492,16 @@ LEAGUE_BROADCASTER_MAPPINGS: Dict[str, List[Dict[str, Any]]] = {
         {"name": "SuperSport Tennis", "countryCode": "ZA", "country": "South Africa", "language": "English"},
         {"name": "beIN Sports 6", "countryCode": "QA", "country": "Middle East", "language": "Arabic"},
     ],
+    "cincinnati": [
+        {"name": "Tennis Channel", "countryCode": "US", "country": "United States", "language": "English"},
+        {"name": "Sky Sports Tennis", "countryCode": "GB", "country": "United Kingdom", "language": "English"},
+        {"name": "Sony Sports Ten 2", "countryCode": "IN", "country": "India", "language": "English"},
+        {"name": "Sony Sports Ten 5", "countryCode": "IN", "country": "India", "language": "English"},
+        {"name": "Stan Sport", "countryCode": "AU", "country": "Australia", "language": "English", "type": "ott"},
+        {"name": "SuperSport Tennis", "countryCode": "ZA", "country": "South Africa", "language": "English"},
+        {"name": "Eurosport 1", "countryCode": "EU", "country": "Europe", "language": "English"},
+        {"name": "beIN Sports 6", "countryCode": "QA", "country": "Middle East", "language": "Arabic"},
+    ],
     "wimbledon": [
         {"name": "BBC One", "countryCode": "GB", "country": "United Kingdom", "language": "English"},
         {"name": "BBC Two", "countryCode": "GB", "country": "United Kingdom", "language": "English"},

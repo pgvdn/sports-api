@@ -52,6 +52,11 @@ F1_LEAGUE_SLUGS = [
     ("f1", "Formula 1", "International"),
 ]
 
+TENNIS_TOURS = [
+    ("atp", "ATP Tour", "International"),
+    ("wta", "WTA Tour", "International"),
+]
+
 
 class EspnPublicProvider(SportsProvider):
     """
@@ -241,6 +246,118 @@ class EspnPublicProvider(SportsProvider):
             logger.error(f"[{self.name}] Error parsing ESPN event: {exc}")
             return None
 
+    def _parse_tennis_event_data(self, data: Dict[str, Any], tour_slug: str) -> List[Event]:
+        events: List[Event] = []
+        if not data or not data.get("events"):
+            return events
+
+        for ev in data.get("events", []):
+            tournament_name = ev.get("name", "Tennis Tournament")
+            venue_raw = ev.get("venue", {})
+            venue = None
+            if venue_raw.get("fullName"):
+                venue = VenueInfo(
+                    name=venue_raw["fullName"],
+                    city=venue_raw.get("address", {}).get("city"),
+                    country=venue_raw.get("address", {}).get("country", "International"),
+                )
+
+            for g in ev.get("groupings", []):
+                group_name = g.get("grouping", {}).get("displayName", "Singles")
+                league_display = f"{tournament_name} - {group_name}"
+
+                for comp in g.get("competitions", []):
+                    match_id = str(comp.get("id", "")).strip()
+                    if not match_id:
+                        continue
+
+                    date_str = comp.get("date")
+                    start_dt = parse_iso_datetime(date_str) or utc_now()
+                    start_time_iso = format_iso_datetime(start_dt) or ""
+
+                    status_obj = comp.get("status", {})
+                    status = self._map_espn_status(status_obj, start_dt)
+
+                    competitors = comp.get("competitors", [])
+                    if len(competitors) < 2:
+                        continue
+
+                    c1, c2 = competitors[0], competitors[1]
+                    p1_name = (c1.get("athlete", {}).get("displayName") or c1.get("team", {}).get("displayName") or "TBD").strip()
+                    p2_name = (c2.get("athlete", {}).get("displayName") or c2.get("team", {}).get("displayName") or "TBD").strip()
+
+                    # Skip future placeholder matches with no athletes assigned yet
+                    if p1_name == "TBD" and p2_name == "TBD":
+                        continue
+
+                    p1_id = str(c1.get("athlete", {}).get("id") or c1.get("team", {}).get("id") or "")
+                    p2_id = str(c2.get("athlete", {}).get("id") or c2.get("team", {}).get("id") or "")
+
+                    p1_flag = c1.get("athlete", {}).get("flag", {}).get("href") or c1.get("athlete", {}).get("headshot", {}).get("href")
+                    p2_flag = c2.get("athlete", {}).get("flag", {}).get("href") or c2.get("athlete", {}).get("headshot", {}).get("href")
+
+                    home_info = ParticipantInfo(
+                        id=p1_id,
+                        name=p1_name,
+                        logo=p1_flag,
+                    )
+                    away_info = ParticipantInfo(
+                        id=p2_id,
+                        name=p2_name,
+                        logo=p2_flag,
+                    )
+                    tennis_players = TennisMatchPlayers(player1=home_info, player2=away_info)
+
+                    # Score formatting: e.g. "6-4, 3-6, 7-6"
+                    lines1 = [str(int(ls.get("value", 0))) for ls in c1.get("linescores", []) if ls.get("value") is not None]
+                    lines2 = [str(int(ls.get("value", 0))) for ls in c2.get("linescores", []) if ls.get("value") is not None]
+                    set_scores = [f"{s1}-{s2}" for s1, s2 in zip(lines1, lines2)]
+                    display_score = ", ".join(set_scores) if set_scores else None
+
+                    score = None
+                    p1_score = c1.get("score")
+                    p2_score = c2.get("score")
+                    if p1_score is not None or p2_score is not None or status == EventStatus.LIVE or display_score:
+                        clock_detail = status_obj.get("type", {}).get("shortDetail") or status_obj.get("type", {}).get("detail")
+                        score = EventScore(
+                            home=p1_score,
+                            away=p2_score,
+                            currentPeriod=clock_detail,
+                            displayScore=display_score or f"{p1_score or 0} - {p2_score or 0}",
+                        )
+
+                    # Broadcasters
+                    broadcasters = get_curated_broadcasters_for_event(
+                        sport="tennis",
+                        league_name=tournament_name,
+                        home_name=p1_name,
+                        away_name=p2_name,
+                    )
+
+                    clean_slug = tournament_name.lower().replace(" ", "_")[:12]
+                    canonical_id = f"tennis_{tour_slug}_{clean_slug}_{match_id}"
+
+                    event = Event(
+                        id=canonical_id,
+                        externalIds={"espn": match_id},
+                        sport="tennis",
+                        league=LeagueInfo(
+                            id=f"tennis.{tour_slug}",
+                            name=league_display,
+                            country=venue.country if venue else "International",
+                        ),
+                        home=home_info,
+                        away=away_info,
+                        tennisPlayers=tennis_players,
+                        startTime=start_time_iso,
+                        status=status,
+                        score=score,
+                        venue=venue,
+                        broadcasters=broadcasters,
+                    )
+                    events.append(event)
+        return events
+
     async def _fetch_scoreboard(self, sport: str, league_slug: str, params: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
         client = await self._get_client()
         url = f"{self.base_url}/{sport}/{league_slug}/scoreboard"
@@ -276,6 +393,16 @@ class EspnPublicProvider(SportsProvider):
                     for raw in data["events"]:
                         ev = self._parse_espn_event(raw, "basketball", slug, league_name, country)
                         if ev and ev.status in (EventStatus.LIVE, EventStatus.HALFTIME, EventStatus.BREAK):
+                            events.append(ev)
+
+        # Check tennis
+        if not target_sport or target_sport == "tennis":
+            for tour_slug, tour_name, country in TENNIS_TOURS:
+                data = await self._fetch_scoreboard("tennis", tour_slug)
+                if data:
+                    t_events = self._parse_tennis_event_data(data, tour_slug)
+                    for ev in t_events:
+                        if ev.status in (EventStatus.LIVE, EventStatus.HALFTIME, EventStatus.BREAK):
                             events.append(ev)
 
         # Check NFL
@@ -323,6 +450,13 @@ class EspnPublicProvider(SportsProvider):
                         ev = self._parse_espn_event(raw, "basketball", slug, league_name, country)
                         if ev:
                             events.append(ev)
+
+        if not target_sport or target_sport == "tennis":
+            for tour_slug, tour_name, country in TENNIS_TOURS:
+                data = await self._fetch_scoreboard("tennis", tour_slug, params=params)
+                if data:
+                    t_events = self._parse_tennis_event_data(data, tour_slug)
+                    events.extend(t_events)
 
         if not target_sport or target_sport in ("nfl", "football_us"):
             for slug, league_name, country in NFL_LEAGUE_SLUGS:
